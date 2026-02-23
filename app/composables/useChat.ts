@@ -19,9 +19,12 @@ export interface ChatMessage {
 }
 
 export const MODELS = [
-  { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', inputPer1M: 3.0, outputPer1M: 15.0 },
-  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', inputPer1M: 0.8, outputPer1M: 4.0 },
-  { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', inputPer1M: 15.0, outputPer1M: 75.0 },
+  { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', provider: 'anthropic', inputPer1M: 3.0, outputPer1M: 15.0 },
+  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', provider: 'anthropic', inputPer1M: 0.8, outputPer1M: 4.0 },
+  { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', provider: 'anthropic', inputPer1M: 15.0, outputPer1M: 75.0 },
+  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai', inputPer1M: 2.5, outputPer1M: 10.0 },
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai', inputPer1M: 0.15, outputPer1M: 0.6 },
+  { id: 'o3-mini', label: 'o3 Mini', provider: 'openai', inputPer1M: 1.1, outputPer1M: 4.4 },
 ]
 
 export function calcCost(inputTokens: number, outputTokens: number, modelId: string): number {
@@ -84,18 +87,7 @@ export function useChat() {
     try {
       const apiMessages = messages.value
         .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => {
-          if (m.imageUrl) {
-            return {
-              role: m.role,
-              content: [
-                { type: 'image', source: { type: 'url', url: m.imageUrl } },
-                ...(m.content ? [{ type: 'text', text: m.content }] : []),
-              ],
-            }
-          }
-          return { role: m.role, content: m.content }
-        })
+        .map((m) => ({ role: m.role, content: m.content, imageUrl: m.imageUrl }))
 
       const data = await $fetch('/api/chat', {
         method: 'POST',
