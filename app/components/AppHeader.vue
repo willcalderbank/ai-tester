@@ -80,12 +80,10 @@ const drawerOpen = ref(false)
         </select>
       </div>
 
-      <button
-        @click="() => { reset(); drawerOpen = false }"
-        class="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md px-4 py-2 transition-colors"
-      >
-        New Chat
-      </button>
+      <div class="border-t border-gray-100 pt-3 flex-1 overflow-y-auto">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 px-1">Conversations</p>
+        <ConversationList @close="drawerOpen = false" />
+      </div>
     </aside>
   </Transition>
 </template>

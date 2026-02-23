@@ -1,7 +1,17 @@
+import {
+  collection,
+  addDoc,
+  setDoc,
+  doc,
+  serverTimestamp,
+  type Firestore,
+} from 'firebase/firestore'
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  imageUrl?: string
   inputTokens?: number
   outputTokens?: number
   cost?: number
@@ -24,6 +34,7 @@ export function useChat() {
   const preamble = useState<string>('chat-preamble', () => '')
   const model = useState<string>('chat-model', () => MODELS[0].id)
   const isLoading = useState<boolean>('chat-loading', () => false)
+  const conversationId = useState<string | null>('chat-conversation-id', () => null)
 
   const conversationStarted = computed(() => messages.value.length > 0)
 
@@ -31,13 +42,41 @@ export function useChat() {
     messages.value.reduce((sum, m) => sum + (m.cost ?? 0), 0)
   )
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || isLoading.value) return
+  async function saveConversation() {
+    if (import.meta.server) return
+    const { $db } = useNuxtApp() as { $db: Firestore | undefined }
+    if (!$db) return
+
+    const firstUserMsg = messages.value.find((m) => m.role === 'user')
+    const title = firstUserMsg ? firstUserMsg.content.slice(0, 60) : 'Untitled'
+    const payload = {
+      title,
+      model: model.value,
+      preamble: preamble.value,
+      messages: messages.value,
+      updatedAt: serverTimestamp(),
+    }
+
+    if (!conversationId.value) {
+      const ref = await addDoc(collection($db, 'conversations'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+      })
+      conversationId.value = ref.id
+    } else {
+      await setDoc(doc($db, 'conversations', conversationId.value), payload, { merge: true })
+    }
+  }
+
+  async function sendMessage(text: string, imageUrl?: string) {
+    if (!text.trim() && !imageUrl) return
+    if (isLoading.value) return
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content: text.trim(),
+      imageUrl,
     }
     messages.value.push(userMsg)
     isLoading.value = true
@@ -45,7 +84,18 @@ export function useChat() {
     try {
       const apiMessages = messages.value
         .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({ role: m.role, content: m.content }))
+        .map((m) => {
+          if (m.imageUrl) {
+            return {
+              role: m.role,
+              content: [
+                { type: 'image', source: { type: 'url', url: m.imageUrl } },
+                ...(m.content ? [{ type: 'text', text: m.content }] : []),
+              ],
+            }
+          }
+          return { role: m.role, content: m.content }
+        })
 
       const data = await $fetch('/api/chat', {
         method: 'POST',
@@ -58,7 +108,6 @@ export function useChat() {
 
       const cost = calcCost(data.usage.input_tokens, data.usage.output_tokens, model.value)
 
-      // attach tokens/cost to user message (input tokens represent this turn's send)
       userMsg.inputTokens = data.usage.input_tokens
       userMsg.model = model.value
 
@@ -71,6 +120,8 @@ export function useChat() {
         model: model.value,
       }
       messages.value.push(assistantMsg)
+
+      await saveConversation()
     } catch (err: any) {
       messages.value.push({
         id: crypto.randomUUID(),
@@ -87,7 +138,8 @@ export function useChat() {
     messages.value = []
     preamble.value = ''
     isLoading.value = false
+    conversationId.value = null
   }
 
-  return { messages, preamble, model, isLoading, conversationStarted, totalCost, sendMessage, reset }
+  return { messages, preamble, model, isLoading, conversationStarted, totalCost, sendMessage, reset, conversationId }
 }

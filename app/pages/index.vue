@@ -17,7 +17,14 @@ watch(
     <AppHeader />
 
     <!-- Content below fixed header -->
-    <div class="flex flex-col flex-1 pt-14 overflow-hidden">
+    <div class="flex flex-1 pt-14 overflow-hidden">
+      <!-- Desktop sidebar -->
+      <aside class="hidden md:flex flex-col w-64 shrink-0 border-r border-gray-200 bg-white overflow-y-auto p-3">
+        <ConversationList />
+      </aside>
+
+      <!-- Main chat area -->
+      <div class="flex flex-col flex-1 overflow-hidden">
       <PreambleEditor />
 
       <!-- Message list -->
@@ -58,6 +65,7 @@ watch(
       </div>
 
       <ChatInput />
+      </div>
     </div>
 
     <CostSummary />

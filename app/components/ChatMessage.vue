@@ -26,7 +26,13 @@ const formattedCost = computed(() => {
 
     <!-- Bubble + meta -->
     <div :class="['flex flex-col gap-1 max-w-[75%]', isUser ? 'items-end' : 'items-start']">
+      <img
+        v-if="message.imageUrl"
+        :src="message.imageUrl"
+        class="max-w-xs rounded-xl border border-gray-200 object-cover"
+      />
       <div
+        v-if="message.content"
         :class="[
           'rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap',
           isUser
