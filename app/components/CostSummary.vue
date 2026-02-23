@@ -1,21 +1,54 @@
 <script setup lang="ts">
-const { totalCost, messages } = useChat()
+import { computed } from 'vue'
+import { MODELS } from '../composables/useChat'
 
-const formatted = computed(() => {
-  if (totalCost.value < 0.0001 && messages.value.length === 0) return null
-  if (totalCost.value < 0.0001) return '< $0.0001'
-  return `$${totalCost.value.toFixed(4)}`
+const { messages, model } = useChat()
+
+const costs = computed(() => {
+  let inputCost = 0
+  let outputCost = 0
+
+  for (const msg of messages.value) {
+    if (msg.inputTokens) {
+      const modelData = MODELS.find((m) => m.id === (msg.model || model.value))
+      if (modelData) {
+        inputCost += (msg.inputTokens / 1_000_000) * modelData.inputPer1M
+      }
+    }
+    if (msg.outputTokens) {
+      const modelData = MODELS.find((m) => m.id === (msg.model || model.value))
+      if (modelData) {
+        outputCost += (msg.outputTokens / 1_000_000) * modelData.outputPer1M
+      }
+    }
+  }
+
+  return { inputCost, outputCost, total: inputCost + outputCost }
+})
+
+const showCosts = computed(() => {
+  return messages.value.length > 0 && costs.value.total > 0
 })
 </script>
 
 <template>
   <Transition name="pop">
     <div
-      v-if="formatted"
-      class="fixed bottom-20 right-4 z-30 bg-white border border-gray-200 shadow-md rounded-full px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-700"
+      v-if="showCosts"
+      class="fixed bottom-20 right-4 z-30 bg-white border border-gray-200 shadow-md rounded-lg px-3 py-2 text-xs font-medium text-gray-700 space-y-1"
     >
-      <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-      Total: <span class="text-emerald-600 font-semibold">{{ formatted }}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-gray-500">In:</span>
+        <span class="text-blue-600 font-semibold">${{ costs.inputCost.toFixed(4) }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-gray-500">Out:</span>
+        <span class="text-orange-600 font-semibold">${{ costs.outputCost.toFixed(4) }}</span>
+      </div>
+      <div class="border-t border-gray-200 pt-1 flex items-center gap-2">
+        <span class="text-gray-500">Total:</span>
+        <span class="text-emerald-600 font-semibold">${{ costs.total.toFixed(4) }}</span>
+      </div>
     </div>
   </Transition>
 </template>

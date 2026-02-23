@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { MODELS } from '~/composables/useChat'
 
 const { model, reset, conversationStarted } = useChat()
 
 const drawerOpen = ref(false)
+
+const currentModel = computed(() => MODELS.find((m) => m.id === model.value))
 </script>
 
 <template>
@@ -18,13 +21,16 @@ const drawerOpen = ref(false)
       </div>
 
       <!-- Desktop nav -->
-      <div class="hidden md:flex items-center gap-4">
+      <div class="hidden md:flex items-center gap-3">
         <select
           v-model="model"
           class="text-sm border border-gray-300 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option v-for="m in MODELS" :key="m.id" :value="m.id">{{ m.label }}</option>
         </select>
+        <span v-if="currentModel" class="text-xs text-gray-500 whitespace-nowrap">
+          ${{ currentModel.inputPer1M }}/MTok in • ${{ currentModel.outputPer1M }}/MTok out
+        </span>
         <button
           @click="reset"
           class="text-sm text-gray-600 hover:text-indigo-600 transition-colors font-medium"
@@ -70,7 +76,7 @@ const drawerOpen = ref(false)
         </button>
       </div>
 
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-2">
         <label class="text-xs font-medium text-gray-500 uppercase tracking-wide">Model</label>
         <select
           v-model="model"
@@ -78,6 +84,10 @@ const drawerOpen = ref(false)
         >
           <option v-for="m in MODELS" :key="m.id" :value="m.id">{{ m.label }}</option>
         </select>
+        <div v-if="currentModel" class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1.5">
+          <div>Input: <span class="font-medium">${{ currentModel.inputPer1M }}/MTok</span></div>
+          <div>Output: <span class="font-medium">${{ currentModel.outputPer1M }}/MTok</span></div>
+        </div>
       </div>
 
       <div class="border-t border-gray-100 pt-3 flex-1 overflow-y-auto">

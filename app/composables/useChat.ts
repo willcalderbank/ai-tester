@@ -19,23 +19,25 @@ export interface ChatMessage {
 }
 
 export const MODELS = [
+  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'anthropic', inputPer1M: 5.0, outputPer1M: 25.0 },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'anthropic', inputPer1M: 3.0, outputPer1M: 15.0 },
   { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', provider: 'anthropic', inputPer1M: 3.0, outputPer1M: 15.0 },
-  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', provider: 'anthropic', inputPer1M: 0.8, outputPer1M: 4.0 },
-  { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', provider: 'anthropic', inputPer1M: 15.0, outputPer1M: 75.0 },
+  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', provider: 'anthropic', inputPer1M: 1.0, outputPer1M: 5.0 },
+  { id: 'claude-opus-4-5', label: 'Claude Opus 4.5', provider: 'anthropic', inputPer1M: 5.0, outputPer1M: 25.0 },
   { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai', inputPer1M: 2.5, outputPer1M: 10.0 },
   { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai', inputPer1M: 0.15, outputPer1M: 0.6 },
   { id: 'o3-mini', label: 'o3 Mini', provider: 'openai', inputPer1M: 1.1, outputPer1M: 4.4 },
 ]
 
 export function calcCost(inputTokens: number, outputTokens: number, modelId: string): number {
-  const model = MODELS.find((m) => m.id === modelId) ?? MODELS[0]
+  const model = MODELS.find((m) => m.id === modelId) || MODELS[0]!
   return (inputTokens / 1_000_000) * model.inputPer1M + (outputTokens / 1_000_000) * model.outputPer1M
 }
 
 export function useChat() {
   const messages = useState<ChatMessage[]>('chat-messages', () => [])
   const preamble = useState<string>('chat-preamble', () => '')
-  const model = useState<string>('chat-model', () => MODELS[0].id)
+  const model = useState<string>('chat-model', () => MODELS[0]!.id)
   const isLoading = useState<boolean>('chat-loading', () => false)
   const conversationId = useState<string | null>('chat-conversation-id', () => null)
 
@@ -52,11 +54,20 @@ export function useChat() {
 
     const firstUserMsg = messages.value.find((m) => m.role === 'user')
     const title = firstUserMsg ? firstUserMsg.content.slice(0, 60) : 'Untitled'
+    const cleanMessages = messages.value.map((m) => {
+      const cleaned: any = { id: m.id, role: m.role, content: m.content }
+      if (m.imageUrl !== undefined) cleaned.imageUrl = m.imageUrl
+      if (m.inputTokens !== undefined) cleaned.inputTokens = m.inputTokens
+      if (m.outputTokens !== undefined) cleaned.outputTokens = m.outputTokens
+      if (m.cost !== undefined) cleaned.cost = m.cost
+      if (m.model !== undefined) cleaned.model = m.model
+      return cleaned
+    })
     const payload = {
       title,
       model: model.value,
       preamble: preamble.value,
-      messages: messages.value,
+      messages: cleanMessages,
       updatedAt: serverTimestamp(),
     }
 
