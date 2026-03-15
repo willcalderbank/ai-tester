@@ -5,5 +5,11 @@ service cloud.firestore {
     match /conversations/{doc=**} {
       allow read, write: if true;
     }
+    match /presets/{doc=**} {
+      allow read, write: if true;
+    }
+    match /sessions/{doc=**} {
+      allow read, write: if true;
+    }
   }
 }

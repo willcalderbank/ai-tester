@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcCost, MODELS } from '../app/composables/useChat'
+import { calcCost, MODELS } from '../app/models'
 
 describe('MODELS', () => {
   it('has at least one model', () => {
@@ -34,8 +34,8 @@ describe('calcCost', () => {
   })
 
   it('calculates combined cost correctly for haiku', () => {
-    // 500k input @ $0.80/M + 500k output @ $4.00/M = $0.40 + $2.00 = $2.40
-    expect(calcCost(500_000, 500_000, 'claude-haiku-4-5')).toBeCloseTo(2.4)
+    // 500k input @ $1.0/M + 500k output @ $5.00/M = $0.50 + $2.50 = $3.00
+    expect(calcCost(500_000, 500_000, 'claude-haiku-4-5')).toBeCloseTo(3.0)
   })
 
   it('calculates a realistic small request (~200 tokens total)', () => {
@@ -54,5 +54,21 @@ describe('calcCost', () => {
     const haiku = calcCost(10_000, 10_000, 'claude-haiku-4-5')
     const opus = calcCost(10_000, 10_000, 'claude-opus-4-5')
     expect(opus).toBeGreaterThan(haiku)
+  })
+
+  it('cache creation tokens cost 125% of input price', () => {
+    // 1M cache creation tokens at $3.75/M (5-min TTL) = $3.75
+    expect(calcCost(0, 0, 'claude-sonnet-4-5', 1_000_000, 0)).toBeCloseTo(3.75)
+  })
+
+  it('cache read tokens cost 10% of input price', () => {
+    // 1M cache read tokens at $3.00/M * 0.1 = $0.30
+    expect(calcCost(0, 0, 'claude-sonnet-4-5', 0, 1_000_000)).toBeCloseTo(0.30)
+  })
+
+  it('combines regular and cache tokens correctly', () => {
+    // 500k input @ $3.00/M + 500k cache creation @ $3.75/M + 500k cache read @ $0.30/M
+    // = $1.50 + $1.875 + $0.15 = $3.525
+    expect(calcCost(500_000, 0, 'claude-sonnet-4-5', 500_000, 500_000)).toBeCloseTo(3.525)
   })
 })
