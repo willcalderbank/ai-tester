@@ -102,6 +102,26 @@ export function usePresets() {
     )
   }
 
+  async function getPreset(id: string): Promise<Preset | null> {
+    if (!$db) return null
+    const snap = await getDoc(doc($db, 'presets', id))
+    if (!snap.exists()) return null
+    const d = snap.data()
+    return {
+      id: snap.id,
+      name: d.name ?? 'Untitled',
+      systemPrompt: d.systemPrompt ?? '',
+      model: d.model ?? 'claude-opus-4-6',
+      temperature: d.temperature ?? 1,
+      maxTokens: d.maxTokens ?? null,
+      cacheTTL: d.cacheTTL ?? null,
+      autoCacheTTL: d.autoCacheTTL ?? null,
+      contextCompaction: d.contextCompaction ?? false,
+      createdAt: d.createdAt ?? null,
+      updatedAt: d.updatedAt ?? null,
+    }
+  }
+
   async function deletePreset(id: string) {
     if (!$db) return
     await deleteDoc(doc($db, 'presets', id))
@@ -157,6 +177,7 @@ export function usePresets() {
     presets,
     sessions,
     fetchPresets,
+    getPreset,
     createPreset,
     updatePreset,
     deletePreset,

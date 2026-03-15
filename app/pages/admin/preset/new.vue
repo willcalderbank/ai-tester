@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { MODELS } from '~/models'
 
-const { createPreset } = usePresets()
+const route = useRoute()
+const { createPreset, getPreset } = usePresets()
 
 const formName = ref('')
 const formSystemPrompt = ref('')
@@ -13,6 +15,21 @@ const cacheTTL = ref<'5min' | '1h' | null>(null)
 const autoCacheTTL = ref<'5min' | '1h' | null>(null)
 const contextCompaction = ref(false)
 const isSaving = ref(false)
+
+onMounted(async () => {
+  const fromId = route.query.from as string | undefined
+  if (!fromId) return
+  const preset = await getPreset(fromId)
+  if (!preset) return
+  formName.value = preset.name + ' (copy)'
+  formSystemPrompt.value = preset.systemPrompt
+  selectedModel.value = preset.model
+  formTemperature.value = preset.temperature
+  formMaxTokens.value = preset.maxTokens
+  cacheTTL.value = preset.cacheTTL
+  autoCacheTTL.value = preset.autoCacheTTL
+  contextCompaction.value = preset.contextCompaction
+})
 
 const selectedModelDef = computed(() => MODELS.find((m) => m.id === selectedModel.value) ?? MODELS[0]!)
 
